@@ -13,10 +13,13 @@ const (
 	Eight Pip = "8"
 	Nine  Pip = "9"
 	Ten   Pip = "10"
-	Jack  Pip = "Jack"
-	Queen Pip = "Queen"
-	King  Pip = "King"
+	Jack  Pip = "J"
+	Queen Pip = "Q"
+	King  Pip = "K"
 )
+
+var Pips []Pip = []Pip{Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King}
+
 
 func (p Pip) IsFace() bool {
 	return p == Jack || p == Queen || p == King
