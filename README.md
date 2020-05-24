@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jamesboehmer/gopatience.svg?branch=master)](https://travis-ci.org/jamesboehmer/gopatience)
+[![codecov](https://codecov.io/gh/jamesboehmer/gopatience/branch/master/graph/badge.svg)](https://codecov.io/gh/jamesboehmer/gopatience)
 [![License](https://img.shields.io/badge/license-GPLv3.0+-blue)](https://opensource.org/licenses/GPL-3.0)
 
 # Gopatience - A Collection of Patience Solitaire Games in Go

@@ -13,6 +13,8 @@ const (
 	Clubs    Suit = "♣"
 )
 
+var Suits = map[string]Suit{"♠": Spades, "♥": Hearts, "♦": Diamonds, "♣": Clubs}
+
 func (suit Suit) Color() Color {
 	if suit == Diamonds || suit == Hearts {
 		return Red
