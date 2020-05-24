@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"errors"
 	"github.com/jamesboehmer/gopatience/pkg/cards/pip"
 	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
 	"math/rand"
@@ -60,15 +61,16 @@ func (card *Card) IsFace() bool {
 }
 
 func (card *Card) String() string {
-	if card.Pip == "" {
-		return "*"
-	}
 	buffer := strings.Builder{}
 	if !card.Revealed {
 		buffer.WriteString("|")
 	}
-	buffer.WriteString(string(card.Pip))
-	buffer.WriteString(string(card.Suit))
+	if card.Pip == "" {
+		buffer.WriteString("*")
+	} else {
+		buffer.WriteString(string(card.Pip))
+		buffer.WriteString(string(card.Suit))
+	}
 	return buffer.String()
 }
 
@@ -96,5 +98,23 @@ func NewDeck(numDecks int, numJokers int) *Deck {
 }
 
 func ParseCard(cardString string) (*Card, error) {
-	return nil, nil
+	revealed := true
+	runes := []rune(cardString)
+	if runes[0] == '|' {
+		revealed = false
+		runes = runes[1:]
+	}
+	if runes[0] == '*' {
+		return &Card{"", "", revealed}, nil
+	}
+	suit, found := suit.Suits[string(runes[len(runes)-1:][0])]
+	if !found {
+		return nil, errors.New("invalid suit")
+	}
+	runes = runes[:len(runes)-1]
+	pip, found := pip.Pips[string(runes)]
+	if !found {
+		return nil, errors.New("invalid pip")
+	}
+	return &Card{pip, suit, revealed}, nil
 }
