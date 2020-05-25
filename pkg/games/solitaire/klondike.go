@@ -2,6 +2,7 @@ package solitaire
 
 import (
 	"github.com/jamesboehmer/gopatience/pkg/cards"
+	"github.com/jamesboehmer/gopatience/pkg/cards/pip"
 	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
 	"github.com/jamesboehmer/gopatience/pkg/games/util"
 )
@@ -80,3 +81,37 @@ func NewKlondikeGame() *KlondikeGame {
 	game.Tableau = *NewTableau(7, &game.Stock)
 	return game
 }
+
+var PipValue = map[pip.Pip]int{
+	pip.Ace:   1,
+	pip.Two:   2,
+	pip.Three: 3,
+	pip.Four:  4,
+	pip.Five:  5,
+	pip.Six:   6,
+	pip.Seven: 7,
+	pip.Eight: 8,
+	pip.Nine:  9,
+	pip.Ten:   10,
+	pip.Jack:  11,
+	pip.Queen: 12,
+	pip.King:  13,
+}
+//
+//func PipValue(p pip.Pip) int {
+//	return map[pip.Pip]int{
+//		pip.Ace:   1,
+//		pip.Two:   2,
+//		pip.Three: 3,
+//		pip.Four:  4,
+//		pip.Five:  5,
+//		pip.Six:   6,
+//		pip.Seven: 7,
+//		pip.Eight: 8,
+//		pip.Nine:  9,
+//		pip.Ten:   10,
+//		pip.Jack:  11,
+//		pip.Queen: 12,
+//		pip.King:  13,
+//	}[p]
+//}
