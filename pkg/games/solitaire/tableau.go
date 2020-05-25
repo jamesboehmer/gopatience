@@ -1,6 +1,7 @@
 package solitaire
 
 import (
+	"errors"
 	"github.com/jamesboehmer/gopatience/pkg/cards"
 	"github.com/jamesboehmer/gopatience/pkg/games/util"
 )
@@ -38,10 +39,53 @@ func (t *Tableau) undoPut(pileNum int, numCards int) error {
 	return nil
 }
 
-func (t *Tableau) Get(pileNum int, cardNum int) ([]cards.Card, error) {
-	return []cards.Card{}, nil
+func (t *Tableau) Get(pileNum int, cardNum int) ([]*cards.Card, error) {
+	if pileNum < 0 || pileNum > len(t.Piles)-1 {
+		return nil, errors.New("invalid pile number")
+	}
+	if cardNum < 0 || cardNum > len(t.Piles[pileNum])-1 {
+		return nil, errors.New("invalid card number")
+	}
+	if !t.Piles[pileNum][cardNum].Revealed {
+		return nil, errors.New("card is concealed")
+	}
+
+	cards := t.Piles[pileNum][cardNum:]
+	t.Piles[pileNum] = t.Piles[pileNum][:cardNum]
+	revealed := t.reveal(pileNum)
+	t.UndoStack = append(t.UndoStack, util.UndoAction{
+		Function: t.undoGet, Args: []interface{}{pileNum, cards, revealed},
+	})
+	return cards, nil
 }
 
-func (t *Tableau) undoGet(pileNum int, cardStrings []string, reConceal bool) error {
+func (t *Tableau) undoGet(args ...interface{}) error {
+	pileNum := args[0].(int)
+	cards := args[1].([]*cards.Card)
+	reConceal := args[2].(bool)
+	if reConceal {
+		t.conceal(pileNum)
+	}
+	t.Piles[pileNum] = append(t.Piles[pileNum], cards...)
 	return nil
+}
+
+func (t *Tableau) reveal(pileNum int) bool {
+	pile := t.Piles[pileNum]
+	if len(pile) > 0 && !pile[len(pile)-1].Revealed {
+		pile[len(pile)-1].Reveal()
+		return true
+	}
+	return false
+
+}
+
+func (t *Tableau) conceal(pileNum int) bool {
+	pile := t.Piles[pileNum]
+	if len(pile) > 0 && pile[len(pile)-1].Revealed {
+		pile[len(pile)-1].Conceal()
+		return true
+	}
+	return false
+
 }
