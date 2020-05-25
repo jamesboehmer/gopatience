@@ -50,12 +50,24 @@ func (f *Foundation) Put(card cards.Card) error {
 	}
 }
 
-func (f *Foundation) undoGet(card cards.Card) error {
+func (f *Foundation) undoGet(args ...interface{}) error {
+	card := args[0].(cards.Card)
+	f.Piles[card.Suit] = append(f.Piles[card.Suit], card)
 	return nil
 }
 
 func (f *Foundation) Get(suit suit.Suit) (*cards.Card, error) {
-	return nil, nil
+	pile, found := f.Piles[suit]
+	if !found {
+		return nil, errors.New("no such suit")
+	}
+	if len(pile) == 0 {
+		return nil, errors.New("pile is empty")
+	}
+	topCard := pile[len(pile)-1]
+	f.Piles[suit] = pile[:len(pile)-1]
+	f.UndoStack = append(f.UndoStack, util.UndoAction{Function: f.undoGet, Args: []interface{}{topCard}})
+	return &topCard, nil
 }
 
 func (f *Foundation) IsFull() bool {

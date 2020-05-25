@@ -45,3 +45,51 @@ func TestFoundation_undoPut(t *testing.T) {
 		t.Error("Hearts foundation pile should have 0 cards left")
 	}
 }
+
+func TestFoundation_Get(t *testing.T) {
+	f := NewFoundation([]suit.Suit{suit.Hearts, suit.Diamonds, suit.Clubs, suit.Spades})
+	_, err := f.Get("")
+	if err == nil {
+		t.Error("Foundation.Get should have returned an error for a nonexistent suit")
+	}
+	_, err = f.Get(suit.Hearts)
+	if err == nil {
+		t.Error("Foundation.Get should have returned an error for an empty pile")
+	}
+
+	card := cards.Card{Pip: pip.Ace, Suit: suit.Hearts, Revealed: true}
+	f.Piles[suit.Hearts] = append(f.Piles[suit.Hearts], card)
+	if len(f.Piles[suit.Hearts]) != 1 {
+		t.Error("Hearts foundation pile should have 1 card")
+	}
+	gottenCard, err := f.Get(suit.Hearts)
+	if err != nil {
+		t.Errorf("Foundation.Get shouldn't have returned an error :%s", err)
+	}
+	if len(f.Piles[suit.Hearts]) != 0 {
+		t.Error("Hearts foundation pile should have 0 cards left")
+	}
+	if *gottenCard != card {
+		t.Error("The card from the foundation should be the same as the card we put there.")
+	}
+	if len(f.UndoStack) != 1 {
+		t.Error("The foundation's UndoStack should have 1 action in it.")
+	}
+}
+
+func TestFoundation_undoGet(t *testing.T) {
+	f := NewFoundation([]suit.Suit{suit.Hearts, suit.Diamonds, suit.Clubs, suit.Spades})
+	f.Piles[suit.Hearts] = append(f.Piles[suit.Hearts], cards.Card{Pip: pip.Ace, Suit: suit.Hearts, Revealed: true})
+	if len(f.Piles[suit.Hearts]) != 1 {
+		t.Error("Hearts foundation pile should have 1 card")
+	}
+	f.Get(suit.Hearts)
+	if len(f.Piles[suit.Hearts]) != 0 {
+		t.Error("Hearts foundation pile should have 0 cards left")
+	}
+	f.Undo()
+	if len(f.Piles[suit.Hearts]) != 1 {
+		t.Error("Hearts foundation pile should have 1 card again")
+	}
+
+}
