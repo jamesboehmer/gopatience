@@ -71,5 +71,10 @@ func (f *Foundation) Get(suit suit.Suit) (*cards.Card, error) {
 }
 
 func (f *Foundation) IsFull() bool {
-	return false
+	for _, pile := range f.Piles {
+		if len(pile) != 13 {
+			return false
+		}
+	}
+	return true
 }

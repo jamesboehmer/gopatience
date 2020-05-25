@@ -91,5 +91,21 @@ func TestFoundation_undoGet(t *testing.T) {
 	if len(f.Piles[suit.Hearts]) != 1 {
 		t.Error("Hearts foundation pile should have 1 card again")
 	}
+}
 
+func TestFoundation_IsFull(t *testing.T) {
+	f := NewFoundation([]suit.Suit{suit.Hearts, suit.Diamonds, suit.Clubs, suit.Spades})
+	for _, suit := range suit.Suits {
+		for _, pip := range []pip.Pip{pip.Ace, pip.Two, pip.Three, pip.Four, pip.Five, pip.Six, pip.Seven,
+			pip.Eight, pip.Nine, pip.Ten, pip.Jack, pip.Queen, pip.King,
+		} {
+			if f.IsFull() {
+				t.Error("Foundation should not be full yet.")
+			}
+			f.Put(cards.Card{Pip: pip, Suit: suit, Revealed: true})
+		}
+	}
+	if !f.IsFull() {
+		t.Error("Foundation should be full.")
+	}
 }
