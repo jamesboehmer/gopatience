@@ -100,7 +100,16 @@ func TestKlondikeGame_undoDeal(t *testing.T) {
 	if len(k.UndoStack) != 24 {
 		t.Error("The undo stack should have 0 actions")
 	}
+}
 
-
-
+func TestKlondikeGame_adjustScore(t *testing.T) {
+	k := NewKlondikeGame()
+	k.adjustScore(100)
+	if k.Score != 100 {
+		t.Error("The score should be 100")
+	}
+	k.adjustScore(-113)
+	if k.Score != -13 {
+		t.Error("The score should be -13")
+	}
 }
