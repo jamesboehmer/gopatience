@@ -3,6 +3,7 @@ package solitaire
 import (
 	"errors"
 	"github.com/jamesboehmer/gopatience/pkg/cards"
+	"github.com/jamesboehmer/gopatience/pkg/cards/pip"
 	"github.com/jamesboehmer/gopatience/pkg/games/util"
 )
 
@@ -31,11 +32,44 @@ func NewTableau(size int, deck *cards.Deck) *Tableau {
 	return tableau
 }
 
-func (t *Tableau) Put(cards []cards.Card, pileNum int) error {
-	return nil
+func (t *Tableau) Put(cards []*cards.Card, pileNum int) error {
+	if !cards[0].Revealed {
+		return errors.New("concealed cards may not be put on the tableau")
+	}
+	if pileNum < 0 || pileNum > len(t.Piles)-1 {
+		return errors.New("invalid pile number")
+	}
+	if len(t.Piles[pileNum]) == 0 {
+		if cards[0].Pip == pip.King {
+			t.Piles[pileNum] = append(t.Piles[pileNum], cards...)
+			t.UndoStack = append(t.UndoStack, util.UndoAction{
+				Function: t.undoPut,
+				Args:     []interface{}{pileNum, len(cards)},
+			})
+			return nil
+		} else {
+			return errors.New("only kings may be built on empty tableau piles")
+		}
+	}
+	topCard := t.Piles[pileNum][len(t.Piles[pileNum])-1]
+	if cards[0].Suit.Color() == topCard.Suit.Color() || PipValue[cards[0].Pip] != PipValue[topCard.Pip]-1 {
+		return errors.New("tableau cards must be built in descending order with alternate colors")
+
+	} else {
+		t.Piles[pileNum] = append(t.Piles[pileNum], cards...)
+		t.UndoStack = append(t.UndoStack, util.UndoAction{
+			Function: t.undoPut,
+			Args:     []interface{}{pileNum, len(cards)},
+		})
+		return nil
+	}
 }
 
-func (t *Tableau) undoPut(pileNum int, numCards int) error {
+func (t *Tableau) undoPut(args ...interface{}) error {
+	pileNum, numCards := args[0].(int), args[1].(int)
+	for i := numCards; i > 0; i-- {
+		t.Piles[pileNum] = t.Piles[pileNum][:len(t.Piles[pileNum])-numCards]
+	}
 	return nil
 }
 
