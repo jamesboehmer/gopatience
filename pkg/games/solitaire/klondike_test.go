@@ -87,5 +87,20 @@ func TestKlondikeGame_undoDeal(t *testing.T) {
 	if len(k.UndoStack) != 0 {
 		t.Error("The undo stack should have 0 actions")
 	}
+	for i := 0; i < 25; i++ {
+		k.Deal()
+	}
+	k.Undo()
+	if len(k.Stock.Cards) != 0 {
+		t.Error("There should be 0 cards remaining in the stock")
+	}
+	if len(k.Waste) != 24 {
+		t.Error("There should be 24 cards in the waste")
+	}
+	if len(k.UndoStack) != 24 {
+		t.Error("The undo stack should have 0 actions")
+	}
+
+
 
 }
