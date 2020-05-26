@@ -36,7 +36,17 @@ func (deck *Deck) Deal() *Card {
 	card := deck.Cards[0]
 	deck.Cards = deck.Cards[1:]
 	return &card
+}
 
+func (deck *Deck) DealAll() <-chan *Card {
+	channel := make(chan *Card, deck.Remaining()+100)
+	go func() {
+		defer close(channel)
+		for deck.Remaining() > 0 {
+			channel <- deck.Deal()
+		}
+	}()
+	return channel
 }
 
 func (deck *Deck) Remaining() int {
