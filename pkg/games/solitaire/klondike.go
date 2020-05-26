@@ -1,6 +1,7 @@
 package solitaire
 
 import (
+	"errors"
 	"github.com/jamesboehmer/gopatience/pkg/cards"
 	"github.com/jamesboehmer/gopatience/pkg/cards/pip"
 	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
@@ -18,10 +19,36 @@ type KlondikeGame struct {
 }
 
 func (k *KlondikeGame) Deal() error {
+	replenished := false
+	if k.Stock.Remaining() == 0 {
+		if len(k.Waste) > 0 {
+			for _, card := range k.Waste {
+				k.Stock.Cards = append(k.Stock.Cards, *card.Conceal())
+			}
+			k.Waste = []cards.Card{}
+			replenished = true
+		} else {
+			return errors.New("no cards remaining")
+		}
+	}
+	k.Waste = append(k.Waste, *k.Stock.Deal().Reveal())
+	k.UndoStack = append(k.UndoStack, util.UndoAction{
+		Function: k.undoDeal,
+		Args:     []interface{}{replenished},
+	})
 	return nil
 }
 
-func (k *KlondikeGame) undoDeal() error {
+func (k *KlondikeGame) undoDeal(args ...interface{}) error {
+	replenished := args[0].(bool)
+	card := k.Waste[len(k.Waste)-1]
+	k.Waste = k.Waste[:len(k.Waste)-1]
+	k.Stock.Cards = append([]cards.Card{*card.Reveal()}, k.Stock.Cards...)
+	if replenished {
+		for card := range k.Stock.DealAll() {
+			k.Waste = append(k.Waste, *card.Reveal())
+		}
+	}
 	return nil
 }
 
@@ -76,7 +103,7 @@ func (k *KlondikeGame) Solve() error {
 
 func NewKlondikeGame() *KlondikeGame {
 	game := new(KlondikeGame)
-	game.Stock = *cards.NewDeck(1, 0)
+	game.Stock = *cards.NewDeck(1, 0).Shuffle()
 	game.Foundation = *NewFoundation([]suit.Suit{suit.Hearts, suit.Diamonds, suit.Clubs, suit.Spades})
 	game.Tableau = *NewTableau(7, &game.Stock)
 	return game
@@ -97,21 +124,3 @@ var PipValue = map[pip.Pip]int{
 	pip.Queen: 12,
 	pip.King:  13,
 }
-//
-//func PipValue(p pip.Pip) int {
-//	return map[pip.Pip]int{
-//		pip.Ace:   1,
-//		pip.Two:   2,
-//		pip.Three: 3,
-//		pip.Four:  4,
-//		pip.Five:  5,
-//		pip.Six:   6,
-//		pip.Seven: 7,
-//		pip.Eight: 8,
-//		pip.Nine:  9,
-//		pip.Ten:   10,
-//		pip.Jack:  11,
-//		pip.Queen: 12,
-//		pip.King:  13,
-//	}[p]
-//}
