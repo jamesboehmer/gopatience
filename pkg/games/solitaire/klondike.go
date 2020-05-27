@@ -252,7 +252,7 @@ func (k *KlondikeGame) IsSolvable() bool {
 }
 
 func (k *KlondikeGame) IsSolved() bool {
-	return false
+	return k.Foundation.IsFull()
 }
 
 func (k *KlondikeGame) Solve() error {

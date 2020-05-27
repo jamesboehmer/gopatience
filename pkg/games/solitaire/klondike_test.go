@@ -404,6 +404,19 @@ func TestKlondikeGame_IsSolvable(t *testing.T) {
 	if !k.IsSolvable() {
 		t.Error("The game should be solvable with empty deck snd waste, and all tableau cards revealed")
 	}
+}
 
-
+func TestKlondikeGame_IsSolved(t *testing.T) {
+	k := NewKlondikeGame()
+	if k.IsSolved() {
+		t.Error("Game should not be solved if the foundation isn't full")
+	}
+	for suit, _ := range k.Foundation.Piles {
+		for i := 0; i < 13; i++ {
+			k.Foundation.Piles[suit] = append(k.Foundation.Piles[suit], cards.Card{})
+		}
+	}
+	if !k.IsSolved() {
+		t.Error("Game should be solved if the foundation is full")
+	}
 }
