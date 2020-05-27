@@ -157,12 +157,85 @@ func (k *KlondikeGame) undoSeekTableauToFoundation() error {
 	return nil
 }
 
-func (k *KlondikeGame) SelectTableau(pileCardDestination ...int) error {
-	//TODO: pileNum int, cardNum int, destination int from pileCardDestination
-	return nil
+func (k *KlondikeGame) SelectTableau(pileNum int, cardDestination ...int) error {
+	if pileNum < 0 || pileNum > len(k.Tableau.Piles)-1 {
+		return errors.New("invalid pileNum")
+	}
+	if len(k.Tableau.Piles[pileNum]) == 0 {
+		return errors.New("empty pile")
+	}
+	cardNum := -1
+	if len(cardDestination) > 0 {
+		cardNum = cardDestination[0]
+	}
+	if len(cardDestination) > 1 {
+		if cardDestination[1] == pileNum || cardDestination[1] < 0 { //|| cardDestination[1] > len(k.Tableau.Piles)-1{
+			return errors.New("invalid destination")
+		}
+	}
+	if cardNum < 0 {
+		// it's valid to ask for a negative index, just convert it to the positive offset
+		cardNum = len(k.Tableau.Piles[pileNum])+cardNum
+		if cardNum < 0 {
+			return errors.New("invalid cardNum")
+		}
+	}
+	cards, err := k.Tableau.Get(pileNum, cardNum) //needs to be undone if we can't find a fit
+	if err != nil {
+		return err
+	}
+	// If there's only 1 card selected from the tableau, and no destination specified, try to fit it in the foundation
+	if len(cards) == 1 && len(cardDestination) < 2 {
+		err = k.Foundation.Put(*cards[0])
+		if err == nil {
+			k.adjustScore(PointsTableauFoundation)
+			k.UndoStack = append(k.UndoStack, util.UndoAction{
+				Function: k.undoSelectTableau,
+				Args:     []interface{}{true},
+			})
+			return nil
+		}
+		// don't quit here just because we didn't find a foundation fit.
+	}
+
+	// if there was no fit, then try the tableau
+	var tableauDestinations []int
+	if len(cardDestination) > 1 {
+		tableauDestinations = append(tableauDestinations, cardDestination[1])
+	} else {
+		for i := 0; i < len(k.Tableau.Piles); i++ {
+			tableauDestinations = append(tableauDestinations, i)
+		}
+	}
+
+	for _, pileNum := range tableauDestinations {
+		err := k.Tableau.Put(cards, pileNum)
+		if err == nil {
+			k.adjustScore(PointsWasteTableau)
+			k.UndoStack = append(k.UndoStack, util.UndoAction{
+				Function: k.undoSelectTableau,
+				Args:     []interface{}{true},
+			})
+			return nil
+		}
+	}
+	// We couldn't find a card in the tableau that fit in the foundation
+	// OR The chosen tableau card didn't fit in the foundation
+	// OR The chosen tableau card didn't fit anywhere in the tableau
+	// OR the chosen tableau card didn't fit in the chosen tableau pile
+	k.Tableau.Undo()
+	return errors.New("no fit for chosen card(s)")
 }
 
-func (k *KlondikeGame) undoSelectTableau() error {
+func (k *KlondikeGame) undoSelectTableau(args ...interface{}) error {
+	undoFoundation := args[0].(bool)
+	if undoFoundation {
+		k.adjustScore(-PointsTableauFoundation)
+		k.Foundation.Undo() //undo put
+	} else {
+		k.Tableau.Undo() //undo put
+		k.Tableau.Undo() //undo get
+	}
 	return nil
 }
 

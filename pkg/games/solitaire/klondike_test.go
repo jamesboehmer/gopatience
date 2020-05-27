@@ -285,6 +285,93 @@ func TestKlondikeGame_SelectWasteWithoutDestination(t *testing.T) {
 	}
 }
 
-//func TestKlondikeGame_undoSelectWaste(t *testing.T) {
-//
-//}
+func TestKlondikeGame_SelectTableauInvalidPiles(t *testing.T) {
+	k := NewKlondikeGame()
+
+	// pile_num == destination_pile_num - should return error
+	if k.SelectTableau(0, 0, 0) == nil {
+		t.Error("Should have returned an error if pileNum==destinationPile")
+	}
+	//valid pile_num, valid single card_num, invalid destination
+	if k.SelectTableau(0, -1, 7) == nil {
+		t.Error("Should have returned an error if destinationPile is invalid")
+	}
+
+	// valid pileNum, invalid cardNum
+	if k.SelectTableau(0, 100) == nil {
+		t.Error("Should have returned an error if cardNum is invalid")
+	}
+	if k.SelectTableau(0, -2) == nil {
+		t.Error("Should have returned an error if cardNum is negative and can't be transformed")
+	}
+	// invalid pileNum
+	if k.SelectTableau(-1) == nil {
+		t.Error("Should have returned an error if pileNum is invalid")
+	}
+	if k.SelectTableau(7) == nil {
+		t.Error("Should have returned an error if pileNum is invalid")
+	}
+
+	// valid pileNum, empty pile
+	k.Tableau.Piles[0] = []*cards.Card{}
+	if k.SelectTableau(0) == nil {
+		t.Error("Should have returned an error if pile is empty")
+	}
+}
+
+func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
+	k := NewKlondikeGame()
+	// valid pile_num, valid single card_num, no destination, no foundation fit, no tableau fit - return error
+
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+		card, _ := cards.ParseCard(cardString)
+		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
+	}
+	if k.SelectTableau(3, -1) == nil {
+		t.Error("Should have errored")
+	}
+	// valid pile_num, valid single card_num, no destination, foundation fit
+	card, _ := cards.ParseCard("5♣")
+	k.Foundation.Piles[suit.Clubs] =append(k.Foundation.Piles[suit.Clubs], *card)
+	if k.SelectTableau(3, -1) != nil {
+		t.Error("Should have found a foundation fit, not an error")
+	}
+	// valid pile_num, valid single card_num, no destination, no foundation fit, tableau fit
+	k = NewKlondikeGame()
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+		card, _ := cards.ParseCard(cardString)
+		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
+	}
+	if k.SelectTableau(1, 1) != nil {
+		t.Error("Should have found a tableau fit, not an error")
+	}
+
+	// valid pile_num, valid multi card_num, no destination, tableau fit
+	k = NewKlondikeGame()
+	for pileNum, cardString := range []string{"10♦", "8♥", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+		card, _ := cards.ParseCard(cardString)
+		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
+	}
+	card, _ = cards.ParseCard("9♠")
+	k.Tableau.Piles[1][0] = card
+	if k.SelectTableau(1, 0) != nil {
+		t.Error("Should have found a tableau fit")
+	}
+}
+
+func TestKlondikeGame_SelectTableauValidDestination(t *testing.T) {
+	k := NewKlondikeGame()
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+		card, _ := cards.ParseCard(cardString)
+		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
+	}
+	// valid pile_num, valid single card_num, valid destination, no tableau fit - error
+	if k.SelectTableau(5, 5, 0) == nil {
+		t.Error("Should have raised an error with no tableau fit")
+	}
+	// valid pile_num, valid single card_num, valid destination, tableau fit
+	if k.SelectTableau(1, 1, 0) != nil {
+		t.Error("Should have found a tableau fit")
+	}
+
+}
