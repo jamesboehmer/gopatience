@@ -373,5 +373,37 @@ func TestKlondikeGame_SelectTableauValidDestination(t *testing.T) {
 	if k.SelectTableau(1, 1, 0) != nil {
 		t.Error("Should have found a tableau fit")
 	}
+}
+
+func TestKlondikeGame_IsSolvable(t *testing.T) {
+	k := NewKlondikeGame()
+	// remaining stock cards - false
+	if k.IsSolvable() {
+		t.Error("New game should not be solvable yet")
+	}
+
+	// remaining waste cards - false
+	k.Deal()
+	k.Stock.Cards = []cards.Card{}
+	if k.IsSolvable() {
+		t.Error("New game should not be solvable with waste cards remaining")
+	}
+
+	// concealed cards in the tableau - false
+	k.Waste = []cards.Card{}
+	if k.IsSolvable() {
+		t.Error("New game should not be solvable with concealed cards in the tableau")
+	}
+
+	// all tableau cards revealed = true
+	for _, pile := range k.Tableau.Piles {
+		for _, card := range pile {
+			card.Reveal()
+		}
+	}
+	if !k.IsSolvable() {
+		t.Error("The game should be solvable with empty deck snd waste, and all tableau cards revealed")
+	}
+
 
 }

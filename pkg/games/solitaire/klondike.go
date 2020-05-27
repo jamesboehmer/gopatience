@@ -240,7 +240,15 @@ func (k *KlondikeGame) undoSelectTableau(args ...interface{}) error {
 }
 
 func (k *KlondikeGame) IsSolvable() bool {
-	return false
+	if k.Stock.Remaining() + len(k.Waste) > 0 {
+		return false
+	}
+	for _, pile := range k.Tableau.Piles {
+		if len(pile) > 0 && !pile[0].Revealed {
+			return false
+		}
+	}
+	return true
 }
 
 func (k *KlondikeGame) IsSolved() bool {
