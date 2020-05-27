@@ -336,6 +336,13 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 	if k.SelectTableau(3, -1) != nil {
 		t.Error("Should have found a foundation fit, not an error")
 	}
+	if len(k.Foundation.Piles[suit.Clubs]) != 2 {
+		t.Error("Clubs pile should now have 2 cards")
+	}
+	k.Undo()
+	if len(k.Foundation.Piles[suit.Clubs]) != 1 {
+		t.Error("Clubs pile should now have 1 card")
+	}
 	// valid pile_num, valid single card_num, no destination, no foundation fit, tableau fit
 	k = NewKlondikeGame()
 	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
@@ -344,6 +351,19 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 	}
 	if k.SelectTableau(1, 1) != nil {
 		t.Error("Should have found a tableau fit, not an error")
+	}
+	if len(k.Tableau.Piles[0]) != 2 {
+		t.Error("Tableau pile 0 should now have 2 cards")
+	}
+	if len(k.Tableau.Piles[1]) != 1 {
+		t.Error("Tableau pile 1 should now have 1 card")
+	}
+	k.Undo()
+	if len(k.Tableau.Piles[0]) != 1 {
+		t.Error("Tableau pile 0 should now have 1 card")
+	}
+	if len(k.Tableau.Piles[1]) != 2 {
+		t.Error("Tableau pile 1 should now have 2 cards")
 	}
 
 	// valid pile_num, valid multi card_num, no destination, tableau fit

@@ -234,7 +234,7 @@ func (k *KlondikeGame) SelectTableau(pileNum int, cardDestination ...int) error 
 			k.adjustScore(PointsWasteTableau)
 			k.UndoStack = append(k.UndoStack, util.UndoAction{
 				Function: k.undoSelectTableau,
-				Args:     []interface{}{true},
+				Args:     []interface{}{false},
 			})
 			return nil
 		}
