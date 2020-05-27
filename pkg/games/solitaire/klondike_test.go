@@ -2,6 +2,7 @@ package solitaire
 
 import (
 	"github.com/jamesboehmer/gopatience/pkg/cards"
+	"github.com/jamesboehmer/gopatience/pkg/cards/pip"
 	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
 	"testing"
 )
@@ -275,7 +276,6 @@ func TestKlondikeGame_SelectWasteWithoutDestination(t *testing.T) {
 		t.Error("There should be 0 undo actions in the tableau")
 	}
 
-
 	// If there's no foundation fit and no tableau fit, return an error
 	card, _ = cards.ParseCard("K♥")
 	klondike.Waste = []cards.Card{*card}
@@ -323,7 +323,7 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 	k := NewKlondikeGame()
 	// valid pile_num, valid single card_num, no destination, no foundation fit, no tableau fit - return error
 
-	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
 		card, _ := cards.ParseCard(cardString)
 		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
 	}
@@ -332,13 +332,13 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 	}
 	// valid pile_num, valid single card_num, no destination, foundation fit
 	card, _ := cards.ParseCard("5♣")
-	k.Foundation.Piles[suit.Clubs] =append(k.Foundation.Piles[suit.Clubs], *card)
+	k.Foundation.Piles[suit.Clubs] = append(k.Foundation.Piles[suit.Clubs], *card)
 	if k.SelectTableau(3, -1) != nil {
 		t.Error("Should have found a foundation fit, not an error")
 	}
 	// valid pile_num, valid single card_num, no destination, no foundation fit, tableau fit
 	k = NewKlondikeGame()
-	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
 		card, _ := cards.ParseCard(cardString)
 		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
 	}
@@ -348,7 +348,7 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 
 	// valid pile_num, valid multi card_num, no destination, tableau fit
 	k = NewKlondikeGame()
-	for pileNum, cardString := range []string{"10♦", "8♥", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+	for pileNum, cardString := range []string{"10♦", "8♥", "J♦", "6♣", "3♦", "9♥", "2♦"} {
 		card, _ := cards.ParseCard(cardString)
 		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
 	}
@@ -361,7 +361,7 @@ func TestKlondikeGame_SelectTableauNoDestination(t *testing.T) {
 
 func TestKlondikeGame_SelectTableauValidDestination(t *testing.T) {
 	k := NewKlondikeGame()
-	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"}{
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
 		card, _ := cards.ParseCard(cardString)
 		k.Tableau.Piles[pileNum][len(k.Tableau.Piles[pileNum])-1] = card
 	}
@@ -419,4 +419,85 @@ func TestKlondikeGame_IsSolved(t *testing.T) {
 	if !k.IsSolved() {
 		t.Error("Game should be solved if the foundation is full")
 	}
+}
+
+func TestKlondikeGame_Solve(t *testing.T) {
+	k := NewKlondikeGame()
+	if k.Solve() == nil {
+		t.Error("Should return an error when the game is not solvable")
+	}
+	// Set the tableau up with all revealed cards in perfect solution order
+	k.Stock.Cards = []cards.Card{}
+	for pileNum, _ := range k.Tableau.Piles {
+		k.Tableau.Piles[pileNum] = []*cards.Card{}
+	}
+	suits := []suit.Suit{suit.Hearts, suit.Clubs, suit.Diamonds, suit.Spades} // R/B/R/B
+	for _, pip := range []pip.Pip{pip.King, pip.Queen, pip.Jack, pip.Ten, pip.Nine, pip.Eight, pip.Seven, pip.Six, pip.Five, pip.Four,
+		pip.Three, pip.Two, pip.Ace} {
+		for pileNum, suit := range suits {
+			k.Tableau.Piles[pileNum] = append(k.Tableau.Piles[pileNum], &cards.Card{
+				Pip:      pip,
+				Suit:     suit,
+				Revealed: true,
+			})
+		}
+		suits = append(suits[3:], suits[:3]...) // rotate so the colors alternate
+	}
+	// solvable - cards should shift from tableau to foundation
+	if !k.IsSolvable() {
+		t.Error("The game should be solvable")
+	}
+
+	for i := 0; i < 52; i++ {
+		k.Solve()
+	}
+	if !k.IsSolved() {
+		t.Error("The game should be solved")
+	}
+}
+
+func TestKlondikeGame_seekTableauToFoundation(t *testing.T) {
+	k := NewKlondikeGame()
+	// force a situation with multiple aces and a matching two.  Place the card below it too so it doesn't become
+	// a foundation candidate after it's revealed
+	for pileNum, pair := range [][]string{
+		{"K♣", "J♥"},
+		{"A♠", "2♥"},
+		{"A♠", "J♠"},
+		{"K♦", "A♦"},
+		{"A♠", "4♣"},
+		{"Q♣", "2♣"},
+	} {
+		hiddenCard, _ := cards.ParseCard(pair[0])
+		visibleCard, _ := cards.ParseCard(pair[1])
+		k.Tableau.Piles[pileNum+1][(len(k.Tableau.Piles[pileNum+1]) - 2)] = hiddenCard.Conceal()
+		k.Tableau.Piles[pileNum+1][(len(k.Tableau.Piles[pileNum+1]) - 1)] = visibleCard.Reveal()
+	}
+	k.Tableau.Piles[0][0] = &cards.Card{Pip: pip.Ace, Suit: suit.Clubs, Revealed: true}
+
+	k.seekTableauToFoundation()
+	if len(k.UndoStack) != 1 {
+		t.Error("There should be 1 undo event")
+	}
+
+	k.seekTableauToFoundation()
+	if len(k.UndoStack) != 2 {
+		t.Error("There should be 2 undo events")
+	}
+
+	k.seekTableauToFoundation()
+	if len(k.UndoStack) != 3 {
+		t.Error("There should be 3 undo events")
+	}
+
+	// there should be no cards left no cards left to move
+	if k.seekTableauToFoundation() == nil {
+		t.Error("Should have returned an error")
+	}
+
+	k.Undo()
+	if k.seekTableauToFoundation() != nil {
+		t.Error("Should have found a card to move to the foundation")
+	}
+
 }

@@ -150,10 +150,30 @@ func (k *KlondikeGame) undoSelectWaste(args ...interface{}) error {
 }
 
 func (k *KlondikeGame) seekTableauToFoundation() error {
-	return nil
+	// Seek a tableau pile whose top card fits in the foundation
+	for pileNum, _ := range k.Tableau.Piles {
+		cards, err := k.Tableau.Get(pileNum, len(k.Tableau.Piles[pileNum])-1)
+		if err == nil { // we got a card from the tableau, now let's find a foundation fit
+			fErr := k.Foundation.Put(*cards[0])
+			if fErr == nil { // yay it was a tableau fit!  push the undo stack and return
+				k.adjustScore(PointsTableauFoundation)
+				k.UndoStack = append(k.UndoStack, util.UndoAction{
+					Function: k.undoSeekTableauToFoundation,
+					Args:     nil,
+				})
+				return nil
+			}
+			// it wasn't a fit in the tableau, so put the card back and move on to the next tableau pile
+			k.Tableau.Undo()
+		}
+	}
+	return errors.New("no tableau cards fit the foundation")
 }
 
-func (k *KlondikeGame) undoSeekTableauToFoundation() error {
+func (k *KlondikeGame) undoSeekTableauToFoundation(...interface{}) error {
+	k.adjustScore(-PointsTableauFoundation)
+	k.Foundation.Undo()
+	k.Tableau.Undo()
 	return nil
 }
 
@@ -175,7 +195,7 @@ func (k *KlondikeGame) SelectTableau(pileNum int, cardDestination ...int) error 
 	}
 	if cardNum < 0 {
 		// it's valid to ask for a negative index, just convert it to the positive offset
-		cardNum = len(k.Tableau.Piles[pileNum])+cardNum
+		cardNum = len(k.Tableau.Piles[pileNum]) + cardNum
 		if cardNum < 0 {
 			return errors.New("invalid cardNum")
 		}
@@ -240,7 +260,7 @@ func (k *KlondikeGame) undoSelectTableau(args ...interface{}) error {
 }
 
 func (k *KlondikeGame) IsSolvable() bool {
-	if k.Stock.Remaining() + len(k.Waste) > 0 {
+	if k.Stock.Remaining()+len(k.Waste) > 0 {
 		return false
 	}
 	for _, pile := range k.Tableau.Piles {
@@ -256,6 +276,13 @@ func (k *KlondikeGame) IsSolved() bool {
 }
 
 func (k *KlondikeGame) Solve() error {
+	if !k.IsSolvable() {
+		return errors.New("game is not solvable yet")
+	}
+
+	if !k.IsSolved() {
+		k.seekTableauToFoundation()
+	}
 	return nil
 }
 
