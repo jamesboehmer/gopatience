@@ -154,5 +154,137 @@ func TestKlondikeGame_SelectFoundation(t *testing.T) {
 	if err != nil {
 		t.Error("Should not have returned an error when there's a valid fit.")
 	}
-
 }
+
+func TestKlondikeGame_SelectWasteWithDestination(t *testing.T) {
+	klondike := NewKlondikeGame()
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
+		card, _ := cards.ParseCard(cardString)
+		klondike.Tableau.Piles[pileNum][len(klondike.Tableau.Piles[pileNum])-1] = card
+	}
+	err := klondike.SelectWaste(0)
+	if err == nil {
+		t.Error("Should return error when the waste is empty")
+	}
+	// card in waste doesn't fit in destination - return error
+	card, _ := cards.ParseCard("K♠")
+	klondike.Waste = append(klondike.Waste, *card)
+	err = klondike.SelectWaste(0)
+	if err == nil {
+		t.Error("Should return error when the waste card doesn't fit in the specified tableau destination")
+	}
+
+	// card in waste fits in destination
+	klondike.Tableau.Piles[0] = make([]*cards.Card, 0, 13)
+	err = klondike.SelectWaste(0)
+	if err != nil {
+		t.Error("Should not have returned an error when there was a tableau fit")
+	}
+}
+
+func TestKlondikeGame_SelectWasteWithoutDestination(t *testing.T) {
+	klondike := NewKlondikeGame()
+	// If the waste is empty, return an error
+	err := klondike.SelectWaste()
+	if err == nil {
+		t.Error("Should return error when the waste is empty")
+	}
+
+	// If there's a fit in the foundation AND the tableau, the waste card should go to the foundation
+	card, _ := cards.ParseCard("A♠")
+	klondike.Waste = append(klondike.Waste, *card)
+	err = klondike.SelectWaste()
+	if err != nil {
+		t.Error("The waste card should have fit the foundation with no error")
+	}
+	if len(klondike.Waste) != 0 {
+		t.Error("The waste should be empty")
+	}
+	if len(klondike.Foundation.Piles[suit.Spades]) != 1 {
+		t.Error("The Spades pile should have 1 card")
+	}
+	if klondike.Score != PointsWasteFoundation {
+		t.Error("The score should be %n", PointsWasteFoundation)
+	}
+	if len(klondike.Foundation.UndoStack) != 1 {
+		t.Error("There should be 1 undo action in the foundation")
+	}
+	if len(klondike.Tableau.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the tableau")
+	}
+	// Check that the undo function also impacts the score and the foundation
+	klondike.Undo()
+	if len(klondike.Waste) != 1 {
+		t.Error("The waste should have 1 card again")
+	}
+	if len(klondike.Foundation.Piles[suit.Spades]) != 0 {
+		t.Error("The Spades pile should have 0 cards")
+	}
+	if klondike.Score != 0 {
+		t.Error("The score should be reset")
+	}
+	if len(klondike.Foundation.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the foundation")
+	}
+	if len(klondike.Tableau.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the tableau")
+	}
+
+	// If there's no foundation fit, but there's a tableau fit, it should find the right tableau pile
+	card, _ = cards.ParseCard("9♣")
+	klondike.Waste = []cards.Card{*card}
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
+		card, _ = cards.ParseCard(cardString)
+		klondike.Tableau.Piles[pileNum][len(klondike.Tableau.Piles[pileNum])-1] = card
+	}
+	err = klondike.SelectWaste()
+	if err != nil {
+		t.Error("The waste card should have found a tableau pile")
+	}
+	if len(klondike.Waste) != 0 {
+		t.Error("The waste should be empty")
+	}
+	if len(klondike.Tableau.Piles[0]) != 2 {
+		t.Error("Tableau pile 0 should now have 2 cards")
+	}
+	if klondike.Score != PointsWasteTableau {
+		t.Error("The score should be %n", PointsWasteTableau)
+	}
+	if len(klondike.Foundation.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the foundation")
+	}
+	if len(klondike.Tableau.UndoStack) != 1 {
+		t.Error("There should be 1 undo action in the tableau")
+	}
+
+	// check that the undo function affects the score and the tableau
+	klondike.Undo()
+	if len(klondike.Waste) != 1 {
+		t.Error("The waste should have 1 card again")
+	}
+	if len(klondike.Tableau.Piles[0]) != 1 {
+		t.Error("Tableau pile 0 should now have 1 card")
+	}
+	if klondike.Score != 0 {
+		t.Error("The score should be reset")
+	}
+	if len(klondike.Foundation.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the foundation")
+	}
+	if len(klondike.Tableau.UndoStack) != 0 {
+		t.Error("There should be 0 undo actions in the tableau")
+	}
+
+
+	// If there's no foundation fit and no tableau fit, return an error
+	card, _ = cards.ParseCard("K♥")
+	klondike.Waste = []cards.Card{*card}
+	err = klondike.SelectWaste()
+	if err == nil {
+		t.Error("Should have returned an error when there's no foundation or tableau fit")
+	}
+}
+
+//func TestKlondikeGame_undoSelectWaste(t *testing.T) {
+//
+//}

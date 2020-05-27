@@ -94,11 +94,58 @@ func (k *KlondikeGame) undoSelectFoundation(...interface{}) error {
 	return nil
 }
 
-func (k *KlondikeGame) SelectWaste(pileNum ...int) error {
-	return nil
+func (k *KlondikeGame) SelectWaste(tableauDestinations ...int) error {
+	if len(k.Waste) == 0 {
+		return errors.New("no cards left in the waste pile")
+	}
+	topCard := k.Waste[len(k.Waste)-1]
+	k.Waste = k.Waste[:len(k.Waste)-1]
+
+	// try moving from the waste to the foundation if there was no tableau pile specified
+	if tableauDestinations == nil {
+		err := k.Foundation.Put(topCard)
+		if err == nil {
+			k.adjustScore(PointsWasteFoundation)
+			k.UndoStack = append(k.UndoStack, util.UndoAction{
+				Function: k.undoSelectWaste,
+				Args:     []interface{}{true, topCard},
+			})
+			return nil
+		}
+	}
+	// if there was no fit, then try the tableau
+	if tableauDestinations == nil || len(tableauDestinations) == 0 {
+		for i := 0; i < len(k.Tableau.Piles); i++ {
+			tableauDestinations = append(tableauDestinations, i)
+		}
+	}
+
+	for _, pileNum := range tableauDestinations {
+		err := k.Tableau.Put([]*cards.Card{&topCard}, pileNum)
+		if err == nil {
+			k.adjustScore(PointsWasteTableau)
+			k.UndoStack = append(k.UndoStack, util.UndoAction{
+				Function: k.undoSelectWaste,
+				Args:     []interface{}{false, topCard},
+			})
+			return nil
+		}
+	}
+	// if there was no fit, put the card back on the waste pile
+	k.Waste = append(k.Waste, topCard)
+	return errors.New("no tableau fit")
 }
 
-func (k *KlondikeGame) undoSelectWaste() error {
+func (k *KlondikeGame) undoSelectWaste(args ...interface{}) error {
+	undoFoundation, card := args[0].(bool), args[1].(cards.Card)
+	if undoFoundation {
+		k.adjustScore(-PointsWasteFoundation)
+		k.Foundation.Undo()
+	} else {
+		k.adjustScore(-PointsWasteTableau)
+		k.Tableau.Undo()
+	}
+	k.Waste = append(k.Waste, card)
 	return nil
 }
 
