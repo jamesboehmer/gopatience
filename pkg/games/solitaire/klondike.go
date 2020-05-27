@@ -18,6 +18,12 @@ type KlondikeGame struct {
 	Tableau    Tableau
 }
 
+const (
+	PointsWasteFoundation   int = 10
+	PointsWasteTableau      int = 5
+	PointsTableauFoundation int = 15
+)
+
 func (k *KlondikeGame) Deal() error {
 	replenished := false
 	if k.Stock.Remaining() == 0 {
@@ -56,11 +62,35 @@ func (k *KlondikeGame) adjustScore(points int) {
 	k.Score += points
 }
 
-func (k *KlondikeGame) SelectFoundation(suit suit.Suit, pileNum ...int) error {
-	return nil
+func (k *KlondikeGame) SelectFoundation(suit suit.Suit, tableauDestinations ...int) error {
+	card, err := k.Foundation.Get(suit)
+	if err != nil {
+		return err
+	}
+	if tableauDestinations == nil || len(tableauDestinations) == 0 {
+		for i := 0; i < len(k.Tableau.Piles); i++ {
+			tableauDestinations = append(tableauDestinations, i)
+		}
+	}
+	for _, pileNum := range tableauDestinations {
+		err := k.Tableau.Put([]*cards.Card{card}, pileNum)
+		if err == nil {
+			k.adjustScore(-PointsTableauFoundation)
+			k.UndoStack = append(k.UndoStack, util.UndoAction{
+				Function: k.undoSelectFoundation,
+				Args:     nil,
+			})
+			return nil
+		}
+	}
+	k.Foundation.Undo()
+	return errors.New("no tableau fit")
 }
 
-func (k *KlondikeGame) undoSelectFoundation() error {
+func (k *KlondikeGame) undoSelectFoundation(...interface{}) error {
+	k.adjustScore(PointsTableauFoundation)
+	k.Tableau.Undo()
+	k.Foundation.Undo()
 	return nil
 }
 

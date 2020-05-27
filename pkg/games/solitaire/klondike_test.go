@@ -2,6 +2,7 @@ package solitaire
 
 import (
 	"github.com/jamesboehmer/gopatience/pkg/cards"
+	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
 	"testing"
 )
 
@@ -112,4 +113,46 @@ func TestKlondikeGame_adjustScore(t *testing.T) {
 	if k.Score != -13 {
 		t.Error("The score should be -13")
 	}
+}
+
+func TestKlondikeGame_SelectFoundation(t *testing.T) {
+	klondike := NewKlondikeGame()
+	// set up the tableau top cards
+	for pileNum, cardString := range []string{"10♦", "9♠", "J♦", "6♣", "3♦", "9♥", "2♦"} {
+		klondike.Tableau.Piles[pileNum][len(klondike.Tableau.Piles[pileNum])-1], _ = cards.ParseCard(cardString)
+	}
+	// empty pile - return error
+	err := klondike.SelectFoundation(suit.Hearts, 3)
+	if err == nil {
+		t.Error("should return error when foundation pile is empty")
+	}
+	// invalid pile - return error
+	err = klondike.SelectFoundation("", 3)
+	if err == nil {
+		t.Error("should return error when suit is nonexistent")
+	}
+	// valid pile, invalid destination - return error
+	card, _ := cards.ParseCard("5♥")
+	klondike.Foundation.Piles[suit.Hearts] = append(klondike.Foundation.Piles[suit.Hearts], *card)
+	err = klondike.SelectFoundation(suit.Hearts, 7)
+	if err == nil {
+		t.Error("Should return error when destination pile doesn't exist")
+	}
+	// valid pile, valid destination, no fit - return error
+	err = klondike.SelectFoundation(suit.Hearts, 4)
+	if err == nil {
+		t.Error("Should return error when card doesn't fit the destination")
+	}
+	// valid pile, valid destination with fit
+	err = klondike.SelectFoundation(suit.Hearts, 3)
+	if err != nil {
+		t.Error("Should not have returned an error when there's a valid fit.")
+	}
+	klondike.Undo()
+	// valid pile, seek pile with fit
+	err = klondike.SelectFoundation(suit.Hearts)
+	if err != nil {
+		t.Error("Should not have returned an error when there's a valid fit.")
+	}
+
 }
