@@ -90,9 +90,40 @@ func (cmd *KlondikeCmd) printGame() {
 	}
 	buffer.WriteString(fmt.Sprintf("Foundation: %s\n", strings.Join(foundation, " ")))
 
-	//TODO: tableau
+	buffer.WriteString("Tableau:\n")
+	columnWidth := 3
+	spacer := strings.Repeat(" ", 2)
+	var tableauHeaders []string
+	for pileNum, _ := range cmd.klondike.Tableau.Piles {
+		tableauHeaders = append(tableauHeaders, fmt.Sprintf("%-*d", columnWidth, pileNum))
+	}
+	buffer.WriteString(
+		fmt.Sprintf("%s\n", strings.Join(tableauHeaders, spacer)))
+	var tableauDividers []string
+	for range cmd.klondike.Tableau.Piles {
+		tableauDividers = append(tableauDividers, strings.Repeat("-", columnWidth))
+	}
+	buffer.WriteString(fmt.Sprintf("%s\n", strings.Join(tableauDividers, spacer)))
 
-	buffer.WriteString(strings.Repeat("\n", 19))
+	//transpose the tableau piles
+	rows := [13][]string{}
+	for rowNum, _ := range rows{
+		rows[rowNum] = make([]string, len(cmd.klondike.Tableau.Piles), len(cmd.klondike.Tableau.Piles))
+		for pileNum, pile := range cmd.klondike.Tableau.Piles {
+			if len(pile) > rowNum {
+				rows[rowNum][pileNum] = paintCard(*pile[rowNum], 0, columnWidth)
+			} else if rowNum == 0 {
+				rows[rowNum][pileNum] = "[ ]"
+			} else {
+				rows[rowNum][pileNum] = "   "
+			}
+		}
+	}
+	for _, row := range rows {
+		buffer.WriteString(fmt.Sprintf("%s\n", strings.Join(row, spacer)))
+	}
+
+	buffer.WriteString(strings.Repeat("\n", 6))
 	fmt.Println(buffer.String())
 
 }
