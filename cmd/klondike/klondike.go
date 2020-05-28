@@ -33,10 +33,10 @@ func (cmd *KlondikeCmd) printGame() {
 		return fmt.Sprintf("%s%s%s%s", StyleBright, color, s, StyleReset)
 	}
 
-	max := func (x, y int) int {
+	max := func(x, y int) int {
 		if x > y {
-		return x
-	}
+			return x
+		}
 		return y
 	}
 	paintCard := func(card cards.Card, leftPad int, rightPad int) string {
@@ -78,7 +78,18 @@ func (cmd *KlondikeCmd) printGame() {
 	waste := fmt.Sprintf("[%s]", strings.Join(paintedCards, ", "))
 	buffer.WriteString(fmt.Sprintf("Waste: %s\n", waste))
 
-	//TODO: foundation
+	var foundation []string
+	for _, suit := range []suit.Suit{suit.Spades, suit.Diamonds, suit.Clubs, suit.Hearts} {
+		pile := cmd.klondike.Foundation.Piles[suit]
+		if len(pile) == 0 {
+			foundation = append(foundation, fmt.Sprintf("[%s]", paintSuit(suit)))
+		} else {
+			paintedCard := paintCard(pile[len(pile)-1], 0, 0)
+			foundation = append(foundation, fmt.Sprintf("%-3s", paintedCard))
+		}
+	}
+	buffer.WriteString(fmt.Sprintf("Foundation: %s\n", strings.Join(foundation, " ")))
+
 	//TODO: tableau
 
 	buffer.WriteString(strings.Repeat("\n", 19))
@@ -139,7 +150,7 @@ func (cmd *KlondikeCmd) doTableau(_ string) (bool, error) {
 func (cmd *KlondikeCmd) Init() *KlondikeCmd {
 	cmd.PostCmd = cmd.postCmd
 	cmd.LastCmd = ""
-	cmd.PreLoop = func () {cmd.printGame()}
+	cmd.PreLoop = func() { cmd.printGame() }
 	cmd.CommandPrompt = "klondike> "
 	cmd.FunctionMap = map[string]func(string) (bool, error){
 		"d":          cmd.doDeal,
