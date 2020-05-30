@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jamesboehmer/gopatience/internal/cmd"
 	"github.com/jamesboehmer/gopatience/pkg/cards"
 	"github.com/jamesboehmer/gopatience/pkg/cards/suit"
 	"github.com/jamesboehmer/gopatience/pkg/games/solitaire"
+	"strconv"
 	"strings"
 )
 
@@ -84,7 +86,7 @@ func (cmd *KlondikeCmd) printGame() {
 		if len(pile) == 0 {
 			foundation = append(foundation, fmt.Sprintf("[%s]", paintSuit(suit)))
 		} else {
-			paintedCard := paintCard(pile[len(pile)-1], 0, 0)
+			paintedCard := paintCard(pile[len(pile)-1], 3, 0)
 			foundation = append(foundation, fmt.Sprintf("%-3s", paintedCard))
 		}
 	}
@@ -107,7 +109,7 @@ func (cmd *KlondikeCmd) printGame() {
 
 	//transpose the tableau piles
 	rows := [13][]string{}
-	for rowNum, _ := range rows{
+	for rowNum, _ := range rows {
 		rows[rowNum] = make([]string, len(cmd.klondike.Tableau.Piles), len(cmd.klondike.Tableau.Piles))
 		for pileNum, pile := range cmd.klondike.Tableau.Piles {
 			if len(pile) > rowNum {
@@ -139,42 +141,109 @@ func (cmd *KlondikeCmd) doDeal(_ string) (bool, error) {
 }
 
 func (cmd *KlondikeCmd) doNew(_ string) (bool, error) {
+	cmd.klondike = solitaire.NewKlondikeGame()
 	cmd.CommandPrompt = fmt.Sprintf("klondike[new]> ")
 	return false, nil
 }
 
-func (cmd *KlondikeCmd) doWaste(_ string) (bool, error) {
+func (cmd *KlondikeCmd) doWaste(line string) (bool, error) {
+	args := strings.Fields(line)
+	if len(args) > 0 {
+		pileNum, err := strconv.ParseInt(args[0], 0, 0)
+		if err == nil {
+			cmd.lastError = cmd.klondike.SelectWaste(int(pileNum))
+			cmd.CommandPrompt = fmt.Sprintf("klondike[waste %d]> ", pileNum)
+			return false, nil
+		}
+	}
+
+	cmd.lastError = cmd.klondike.SelectWaste()
 	cmd.CommandPrompt = fmt.Sprintf("klondike[waste]> ")
 	return false, nil
 }
 
-func (cmd *KlondikeCmd) doFoundation(_ string) (bool, error) {
-	cmd.CommandPrompt = fmt.Sprintf("klondike[foundation]> ")
+func (cmd *KlondikeCmd) doFoundation(line string) (bool, error) {
+	args := strings.Fields(line)
+	if len(args) > 0 {
+		suit, found := map[string]suit.Suit{"c": suit.Clubs, "s": suit.Spades, "d": suit.Diamonds, "h": suit.Hearts}[args[0]]
+		if !found {
+			cmd.lastError = errors.New("no such suit")
+			return false, nil
+		} else {
+			if len(args) < 2 {
+				cmd.lastError = cmd.klondike.SelectFoundation(suit)
+				cmd.CommandPrompt = fmt.Sprintf("klondike[foundation %s]> ", args[0])
+				return false, nil
+			} else {
+				pileNum, err := strconv.ParseInt(args[1], 0, 0)
+				if err == nil {
+					cmd.lastError = cmd.klondike.SelectFoundation(suit, int(pileNum))
+					cmd.CommandPrompt = fmt.Sprintf("klondike[foundation %s %d]> ", args[0], pileNum)
+					return false, nil
+				}
+			}
+		}
+	}
+
+	cmd.lastError = errors.New("usage: foundation c|s|d|h [pile]")
 	return false, nil
 }
 
 func (cmd *KlondikeCmd) doSave(_ string) (bool, error) {
+	cmd.lastError = errors.New("save not implemented yet")
 	cmd.CommandPrompt = fmt.Sprintf("klondike[save]> ")
 	return false, nil
 }
 
 func (cmd *KlondikeCmd) doLoad(_ string) (bool, error) {
+	cmd.lastError = errors.New("load not implemented yet")
 	cmd.CommandPrompt = fmt.Sprintf("klondike[load]> ")
 	return false, nil
 }
 
 func (cmd *KlondikeCmd) doSolve(_ string) (bool, error) {
+	cmd.lastError = cmd.klondike.Solve()
 	cmd.CommandPrompt = fmt.Sprintf("klondike[solve]> ")
 	return false, nil
 }
 
 func (cmd *KlondikeCmd) doUndo(_ string) (bool, error) {
+	cmd.lastError = cmd.klondike.Undo()
 	cmd.CommandPrompt = fmt.Sprintf("klondike[undo]> ")
 	return false, nil
 }
 
-func (cmd *KlondikeCmd) doTableau(_ string) (bool, error) {
-	cmd.CommandPrompt = fmt.Sprintf("klondike[tableau]> ")
+func (cmd *KlondikeCmd) doTableau(line string) (bool, error) {
+	args := strings.Fields(line)
+	if len(args) == 0 {
+		cmd.lastError = errors.New("usage: tableau <pileNum> [<cardNum> [toPile]]")
+		return false, nil
+	}
+	var pileNum int64
+	var otherArgs []int
+	pileNum, err := strconv.ParseInt(args[0], 0, 0)
+	if err != nil {
+		cmd.lastError = err
+		return false, nil
+	}
+	if len(args) > 1 {
+		cardNum, err := strconv.ParseInt(args[1], 0, 0)
+		if err != nil {
+			cmd.lastError = err
+			return false, nil
+		}
+		otherArgs = append(otherArgs, int(cardNum))
+	}
+	if len(args) > 2 {
+		toPile, err := strconv.ParseInt(args[2], 0, 0)
+		if err != nil {
+			cmd.lastError = err
+			return false, nil
+		}
+		otherArgs = append(otherArgs, int(toPile))
+	}
+	cmd.lastError = cmd.klondike.SelectTableau(int(pileNum), otherArgs...)
+	cmd.CommandPrompt = fmt.Sprintf("klondike[tableau %s]> ", line)
 	return false, nil
 }
 

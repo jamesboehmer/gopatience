@@ -20,22 +20,18 @@ type Cmd struct {
 }
 
 func (cmd *Cmd) preLoop() {
-	fmt.Println("Cmd.preLoop")
 	return
 }
 
 func (cmd *Cmd) postLoop() {
-	fmt.Println("Cmd.postLoop")
 	return
 }
 
 func (cmd *Cmd) preCmd(line string) string {
-	fmt.Println("Cmd.preCmd")
 	return line
 }
 
 func (cmd *Cmd) postCmd(stop bool, line string) bool {
-	fmt.Println("Cmd.postCmd")
 	return stop
 }
 
