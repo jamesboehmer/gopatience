@@ -247,7 +247,21 @@ func (cmd *KlondikeCmd) doTableau(line string) (bool, error) {
 	return false, nil
 }
 
+func (cmd *KlondikeCmd) defaultCmd(line string) (bool, error) {
+	command, _, line := cmd.ParseLine(line)
+	if command == "_dump" {
+		// TODO: serialization
+		return false, nil
+	}
+	_, err := strconv.ParseInt(command, 0, 0)
+	if err == nil {
+		return cmd.doTableau(line)
+	}
+	cmd.lastError = errors.New(fmt.Sprintf("*** Unknown syntax: %s ***", line))
+	return false, nil
+}
 func (cmd *KlondikeCmd) Init() *KlondikeCmd {
+	cmd.DefaultCmd = cmd.defaultCmd
 	cmd.PostCmd = cmd.postCmd
 	cmd.LastCmd = ""
 	cmd.PreLoop = func() { cmd.printGame() }

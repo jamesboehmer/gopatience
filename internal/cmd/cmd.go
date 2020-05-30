@@ -13,6 +13,7 @@ type Cmd struct {
 	CommandPrompt string
 	FunctionMap   map[string]func(string) (bool, error)
 	Error         error
+	DefaultCmd	  func(string) (bool, error)
 	PostCmd       func(bool, string) bool
 	PreCmd        func(string) string
 	PreLoop       func()
@@ -56,7 +57,7 @@ func (cmd *Cmd) EmptyLine() (bool, error) {
 	}
 }
 
-func (cmd *Cmd) DefaultCmd(line string) (bool, error) {
+func (cmd *Cmd) defaultCmd(line string) (bool, error) {
 	return false, errors.New(fmt.Sprintf("*** Unknown syntax: %s ***", line))
 }
 
@@ -70,8 +71,8 @@ func (cmd *Cmd) OneCmd(line string) (bool, error) {
 	}
 
 	function, found := cmd.FunctionMap[_cmd]
+	cmd.LastCmd = line
 	if found {
-		cmd.LastCmd = line
 		return function(_arg)
 	} else {
 		return cmd.DefaultCmd(_line)
@@ -79,6 +80,10 @@ func (cmd *Cmd) OneCmd(line string) (bool, error) {
 }
 
 func (cmd *Cmd) init() {
+
+	if cmd.DefaultCmd == nil {
+		cmd.DefaultCmd = cmd.defaultCmd
+	}
 
 	if cmd.PreLoop == nil {
 		cmd.PreLoop = cmd.preLoop
